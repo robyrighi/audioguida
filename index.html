@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Audioguida">
+<meta name="theme-color" content="#15120f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Audioguida</title>
+<style>
+  :root{
+    --bg:#15120f; --surface:#211c17; --surface2:#2c251e; --line:#3a3128;
+    --text:#f3ece2; --muted:#b3a796; --accent:#e0a84a; --accent-ink:#1a1308;
+    --playing:#2a2116; --danger:#d9634c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    touch-action:manipulation;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+  input,select,textarea{-webkit-user-select:text;user-select:text;font:inherit}
+  button{font:inherit;color:inherit;cursor:pointer}
+
+  /* Intestazione */
+  header{position:relative;padding:calc(30px + env(safe-area-inset-top)) 32px 18px}
+  h1{font-family:Georgia,"Times New Roman",serif;font-weight:normal;font-size:44px;line-height:1.1;margin:0}
+  #exSubtitle{margin:8px 0 0;color:var(--muted);font-size:20px}
+  #adminHotspot{position:absolute;top:0;right:0;width:96px;height:96px}
+
+  /* Lista brani */
+  main{padding:8px 32px 190px}
+  #list{list-style:none;margin:0;padding:0;display:grid;gap:14px;
+    grid-template-columns:repeat(auto-fill,minmax(min(420px,100%),1fr))}
+  .card{width:100%;display:flex;align-items:center;gap:18px;padding:18px 22px;min-height:92px;
+    background:var(--surface);border:1px solid var(--line);border-radius:18px;text-align:left}
+  .card:active{background:var(--surface2)}
+  .num{flex:none;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:var(--surface2);color:var(--accent);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums}
+  .t{flex:1;font-size:22px;line-height:1.25}
+  .d{flex:none;color:var(--muted);font-size:17px;font-variant-numeric:tabular-nums}
+  .card.playing{border-color:var(--accent);background:var(--playing)}
+  .card.playing .num{background:var(--accent);color:var(--accent-ink)}
+  .eq{display:none;flex:none;align-items:flex-end;gap:3px;height:22px}
+  .eq i{display:block;width:4px;background:var(--accent);border-radius:2px;height:30%}
+  .card.playing .eq{display:flex}
+  .card.playing .d{display:none}
+  body.is-playing .card.playing .eq i{animation:eq .9s ease-in-out infinite}
+  .eq i:nth-child(2){animation-delay:-.3s!important}
+  .eq i:nth-child(3){animation-delay:-.6s!important}
+  @keyframes eq{0%,100%{height:25%}50%{height:100%}}
+  #empty{padding:40px 8px;color:var(--muted);font-size:20px;line-height:1.5;max-width:640px}
+
+  /* Player */
+  #player{position:fixed;left:0;right:0;bottom:0;z-index:5;background:rgba(21,18,15,.97);
+    border-top:1px solid var(--line);padding:16px 32px calc(18px + env(safe-area-inset-bottom));
+    display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 24px;align-items:center}
+  .np-label{color:var(--accent);font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+  .np-title{font-size:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .ctrls{display:flex;gap:12px;align-items:center}
+  .btn{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
+    display:flex;align-items:center;justify-content:center;padding:0}
+  .btn:active{background:var(--surface2)}
+  .btn.main{width:78px;height:78px;background:var(--accent);color:var(--accent-ink);border:none}
+  .btn svg{width:28px;height:28px}
+  .btn.main svg{width:34px;height:34px}
+  .btn:disabled{opacity:.35}
+  .bar{grid-column:1/-1;display:flex;align-items:center;gap:16px;color:var(--muted);
+    font-size:16px;font-variant-numeric:tabular-nums}
+  .seek{flex:1;height:36px;display:flex;align-items:center;touch-action:none}
+  .seek-bg{position:relative;width:100%;height:6px;border-radius:3px;background:var(--line)}
+  .seek-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);border-radius:3px}
+  .knob{position:absolute;top:50%;left:0;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:var(--accent)}
+
+  /* Overlay comuni */
+  .overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:rgba(0,0,0,.72);
+    display:flex;align-items:center;justify-content:center}
+  .dialog{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:28px;width:340px;text-align:center}
+  .dialog h2{margin:0 0 18px;font-weight:600;font-size:22px}
+  .dots{display:flex;gap:12px;justify-content:center;height:18px;margin-bottom:22px}
+  .dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--muted)}
+  .dots i.on{background:var(--accent);border-color:var(--accent)}
+  .keypad{display:grid;grid-template-columns:repeat(3,80px);gap:12px;justify-content:center}
+  .keypad button{height:66px;border-radius:16px;border:1px solid var(--line);background:var(--surface2);font-size:26px}
+  .keypad button:active{background:var(--line)}
+  .keypad .ok{background:var(--accent);color:var(--accent-ink);border:none;font-size:20px;font-weight:600}
+  .link{background:none;border:none;color:var(--muted);margin-top:18px;font-size:17px;padding:8px}
+  .shake{animation:shake .35s}
+  @keyframes shake{25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+  /* Gestione */
+  #admin{align-items:stretch}
+  .sheet{background:var(--bg);width:100%;max-width:900px;height:100%;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;padding:calc(24px + env(safe-area-inset-top)) 28px 80px}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .sheet-head h2{margin:0;font-size:30px;font-weight:600}
+  section{border-top:1px solid var(--line);padding:18px 0}
+  section h3{margin:0 0 14px;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+  .pill{display:inline-flex;align-items:center;height:48px;padding:0 20px;border-radius:24px;
+    border:1px solid var(--line);background:var(--surface);font-size:17px;white-space:nowrap}
+  .pill.accent{background:var(--accent);color:var(--accent-ink);border:none;font-weight:600}
+  .pill.danger{color:var(--danger)}
+  .row-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .muted{color:var(--muted)}
+  .vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+  .arow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .arow .anum{width:34px;color:var(--accent);font-variant-numeric:tabular-nums;text-align:right}
+  .arow input{flex:1;min-width:0;height:46px;padding:0 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--surface);color:var(--text);font-size:17px}
+  .arow .ameta{color:var(--muted);font-size:14px;width:110px;text-align:right;font-variant-numeric:tabular-nums}
+  .ibtn{width:46px;height:46px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:20px;padding:0}
+  .ibtn.del{color:var(--danger)}
+  .ibtn:disabled{opacity:.3}
+  .field{display:block;margin-bottom:14px}
+  .field span{display:block;color:var(--muted);margin-bottom:6px;font-size:15px}
+  .field input,.field select,#cfgPin{width:100%;max-width:520px;height:48px;padding:0 12px;border-radius:10px;
+    border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:17px}
+  #cfgPin{width:240px}
+  .check{display:flex;gap:12px;align-items:center;margin-bottom:16px;font-size:17px}
+  .check input{width:24px;height:24px;accent-color:var(--accent)}
+
+  @media (max-width:600px){
+    header{padding-left:16px;padding-right:16px} main{padding-left:16px;padding-right:16px}
+    h1{font-size:32px} #player{padding-left:16px;padding-right:16px;grid-template-columns:1fr}
+    .btn{width:54px;height:54px} .btn.main{width:66px;height:66px} .arow .ameta{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="exTitle">Audioguida</h1>
+  <p id="exSubtitle">Tocca un brano per ascoltarlo</p>
+  <div id="adminHotspot" aria-hidden="true"></div>
+</header>
+
+<main>
+  <ul id="list"></ul>
+  <div id="empty" hidden>Nessun brano caricato.<br>Per aggiungere i file audio tieni premuto per 3 secondi l'angolo in alto a destra dello schermo.</div>
+</main>
+
+<audio id="audio" playsinline preload="auto"></audio>
+
+<footer id="player" hidden>
+  <div class="np">
+    <div class="np-label">In ascolto</div>
+    <div class="np-title" id="npTitle"></div>
+  </div>
+  <div class="ctrls">
+    <button class="btn" id="btnPrev" aria-label="Brano precedente"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5.5v13L9.5 12z" fill="currentColor"/></svg></button>
+    <button class="btn main" id="btnPlay" aria-label="Riproduci o metti in pausa"></button>
+    <button class="btn" id="btnNext" aria-label="Brano successivo"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5.5v13L14.5 12z" fill="currentColor"/></svg></button>
+    <button class="btn" id="btnStop" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg></button>
+  </div>
+  <div class="bar">
+    <span id="tCur">0:00</span>
+    <div class="seek" id="seek"><div class="seek-bg"><div class="seek-fill" id="fill"></div><div class="knob" id="knob"></div></div></div>
+    <span id="tDur">0:00</span>
+  </div>
+</footer>
+
+<div id="pinOverlay" class="overlay" hidden>
+  <div class="dialog" id="pinDialog">
+    <h2>Codice di accesso</h2>
+    <div class="dots" id="pinDots"></div>
+    <div class="keypad" id="keypad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="C">⌫</button><button data-k="0">0</button><button data-k="OK" class="ok">OK</button>
+    </div>
+    <button class="link" id="pinCancel">Annulla</button>
+  </div>
+</div>
+
+<div id="admin" class="overlay" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>Gestione</h2>
+      <button class="pill accent" id="adminClose">Chiudi</button>
+    </div>
+
+    <section>
+      <h3>Brani</h3>
+      <div class="row-actions">
+        <label class="pill accent" for="fileInput">+ Aggiungi file audio</label>
+        <input type="file" id="fileInput" class="vh" accept="audio/*,.mp3,.m4a" multiple>
+        <span id="importStatus" class="muted"></span>
+      </div>
+      <div id="adminList"></div>
+    </section>
+
+    <section>
+      <h3>Testi</h3>
+      <label class="field"><span>Titolo</span><input id="cfgTitle" type="text" maxlength="80"></label>
+      <label class="field"><span>Sottotitolo</span><input id="cfgSubtitle" type="text" maxlength="140"></label>
+    </section>
+
+    <section>
+      <h3>Comportamento</h3>
+      <label class="check"><input type="checkbox" id="cfgAutoNext"><span>Al termine di un brano passa automaticamente al successivo</span></label>
+      <label class="field"><span>Torna alla schermata iniziale dopo inattività (solo quando nulla è in riproduzione)</span>
+        <select id="cfgIdle">
+          <option value="30">30 secondi</option>
+          <option value="60">1 minuto</option>
+          <option value="120">2 minuti</option>
+          <option value="300">5 minuti</option>
+          <option value="0">Mai</option>
+        </select>
+      </label>
+    </section>
+
+    <section>
+      <h3>Codice di accesso</h3>
+      <div class="row-actions">
+        <input id="cfgPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="Nuovo codice (4–8 cifre)" autocomplete="off">
+        <button class="pill" id="pinSave">Salva codice</button>
+        <span id="pinMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section>
+      <h3>Info</h3>
+      <p class="muted" id="info"></p>
+      <button class="pill danger" id="deleteAll">Elimina tutti i brani</button>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const APP_VERSION = '1.0.0';
+  const DEFAULTS = { title: 'Audioguida', subtitle: 'Tocca un brano per ascoltarlo', pin: '1234', autoNext: false, idleReset: 60 };
+  const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>';
+
+  const $ = s => document.querySelector(s);
+  const audio = $('#audio');
+  const listEl = $('#list');
+
+  let db = null;
+  let cfg = Object.assign({}, DEFAULTS);
+  let tracks = [];          // metadati ordinati
+  let currentId = null;     // brano attivo
+  let currentUrl = null;    // object URL del brano attivo
+  let lastTouch = Date.now();
+  let atRest = true;
+
+  // ---------- IndexedDB ----------
+  function openDB() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('audioguida', 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('data')) d.createObjectStore('data');
+        if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  function run(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = db.transaction(store, mode);
+      const r = fn(t.objectStore(store));
+      let v;
+      if (r) r.onsuccess = () => { v = r.result; };
+      t.oncomplete = () => res(v);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error || new Error('Transazione annullata'));
+    });
+  }
+  const getAllMeta = () => run('meta', 'readonly', s => s.getAll());
+  const putMeta = m => run('meta', 'readwrite', s => s.put(m));
+  const getData = id => run('data', 'readonly', s => s.get(id));
+  const putData = (id, buf) => run('data', 'readwrite', s => s.put(buf, id));
+  const delMeta = id => run('meta', 'readwrite', s => s.delete(id));
+  const delData = id => run('data', 'readwrite', s => s.delete(id));
+  const loadCfg = () => run('kv', 'readonly', s => s.get('config'));
+  const saveCfg = () => run('kv', 'readwrite', s => s.put(cfg, 'config'));
+
+  // ---------- Utilità ----------
+  const pad2 = n => String(n).padStart(2, '0');
+  function fmt(sec) {
+    if (!isFinite(sec) || sec <= 0) return '0:00';
+    sec = Math.round(sec);
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return h ? h + ':' + pad2(m) + ':' + pad2(s) : m + ':' + pad2(s);
+  }
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function cleanTitle(name) {
+    const t = name.replace(/\.[^.]+$/, '').replace(/^\d+\s*[-_.)]\s*/, '').replace(/_+/g, ' ').trim();
+    return t || name;
+  }
+  const sortTracks = () => tracks.sort((a, b) => a.order - b.order);
+  const indexOfCurrent = () => tracks.findIndex(t => t.id === currentId);
+
+  // ---------- Sblocco audio iOS ----------
+  // iOS permette play() solo dentro un tocco. Il primo tocco "sblocca" l'elemento audio,
+  // così la riproduzione dopo la lettura asincrona da IndexedDB non viene bloccata.
+  let unlocked = false;
+  function silentUrl() {
+    const sr = 8000, n = 400, b = new ArrayBuffer(44 + n * 2), v = new DataView(b);
+    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, 'data'); v.setUint32(40, n * 2, true);
+    return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+  }
+  const SILENT = silentUrl();
+  function unlock() {
+    if (unlocked || currentId) return;
+    unlocked = true;
+    audio.src = SILENT;
+    const p = audio.play();
+    if (p && p.catch) p.catch(e => { if (e && e.name === 'NotAllowedError') unlocked = false; });
+  }
+  document.addEventListener('touchend', unlock, true);
+  document.addEventListener('click', unlock, true);
+
+  // ---------- Rendering lista ----------
+  function renderHeader() {
+    $('#exTitle').textContent = cfg.title;
+    $('#exSubtitle').textContent = cfg.subtitle;
+    document.title = cfg.title;
+  }
+  function renderList() {
+    sortTracks();
+    listEl.innerHTML = tracks.map((t, i) =>
+      '<li><button class="card' + (t.id === currentId ? ' playing' : '') + '" data-id="' + esc(t.id) + '">' +
+      '<span class="num">' + pad2(i + 1) + '</span>' +
+      '<span class="t">' + esc(t.title) + '</span>' +
+      '<span class="d">' + (t.duration ? fmt(t.duration) : '') + '</span>' +
+      '<span class="eq"><i></i><i></i><i></i></span></button></li>'
+    ).join('');
+    $('#empty').hidden = tracks.length > 0;
+  }
+  function markPlaying() {
+    listEl.querySelectorAll('.card').forEach(c => c.classList.toggle('playing', c.dataset.id === currentId));
+  }
+
+  listEl.addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    if (!card) return;
+    const id = card.dataset.id;
+    if (id === currentId) { togglePlay(); return; }
+    playTrack(id);
+  });
+
+  // ---------- Riproduzione ----------
+  function setMediaSession(t) {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: t.title, artist: cfg.title,
+        artwork: [{ src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }]
+      });
+      [['play', () => audio.play()], ['pause', () => audio.pause()], ['previoustrack', prev], ['nexttrack', next]]
+        .forEach(([a, h]) => { try { navigator.mediaSession.setActionHandler(a, h); } catch (_) {} });
+    } catch (_) {}
+  }
+
+  async function playTrack(id) {
+    const t = tracks.find(x => x.id === id);
+    if (!t) return;
+    currentId = id;
+    atRest = false;
+    markPlaying();
+    $('#npTitle').textContent = t.title;
+    $('#player').hidden = false;
+    updateNav();
+    updateProgress(0, t.duration);
+    try {
+      const buf = await getData(id);
+      if (currentId !== id || !buf) return;
+      const url = URL.createObjectURL(new Blob([buf], { type: t.type || 'audio/mpeg' }));
+      const old = currentUrl;
+      audio.src = url;
+      currentUrl = url;
+      if (old) URL.revokeObjectURL(old);
+      setMediaSession(t);
+      await audio.play();
+    } catch (err) {
+      // Se iOS blocca l'avvio automatico, il pulsante Play resta disponibile.
+      updatePlayBtn();
+    }
+  }
+
+  function togglePlay() {
+    if (!currentId) return;
+    if (audio.paused) {
+      const p = audio.play();
+      if (p && p.catch) p.catch(() => {});
+    } else audio.pause();
+  }
+
+  function stop() {
+    audio.pause();
+    currentId = null;
+    if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+    audio.removeAttribute('src');
+    try { audio.load(); } catch (_) {}
+    unlocked = false;
+    $('#player').hidden = true;
+    document.body.classList.remove('is-playing');
+    markPlaying();
+  }
+
+  function prev() {
+    const i = indexOfCurrent();
+    if (i > 0) playTrack(tracks[i - 1].id);
+    else if (i === 0) audio.currentTime = 0;
+  }
+  function next() {
+    const i = indexOfCurrent();
+    if (i >= 0 && i < tracks.length - 1) playTrack(tracks[i + 1].id);
+  }
+  function updateNav() {
+    const i = indexOfCurrent();
+    $('#btnPrev').disabled = i < 0;
+    $('#btnNext').disabled = i < 0 || i >= tracks.length - 1;
+  }
+  function updatePlayBtn() {
+    const playing = !!currentId && !audio.paused;
+    $('#btnPlay').innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    document.body.classList.toggle('is-playing', playing);
+  }
+  function updateProgress(cur, dur) {
+    const r = dur > 0 ? Math.min(1, cur / dur) : 0;
+    $('#fill').style.width = (r * 100) + '%';
+    $('#knob').style.left = (r * 100) + '%';
+    $('#tCur').textContent = fmt(cur);
+    $('#tDur').textContent = fmt(dur);
+  }
+
+  $('#btnPlay').addEventListener('click', togglePlay);
+  $('#btnStop').addEventListener('click', stop);
+  $('#btnPrev').addEventListener('click', prev);
+  $('#btnNext').addEventListener('click', next);
+
+  audio.addEventListener('play', () => { if (currentId) updatePlayBtn(); });
+  audio.addEventListener('pause', updatePlayBtn);
+  audio.addEventListener('timeupdate', () => { if (currentId) updateProgress(audio.currentTime, audio.duration); });
+  audio.addEventListener('loadedmetadata', async () => {
+    const t = tracks.find(x => x.id === currentId);
+    if (t && (!t.duration || Math.abs(t.duration - audio.duration) > 1) && isFinite(audio.duration)) {
+      t.duration = audio.duration;
+      try { await putMeta(t); } catch (_) {}
+      const d = listEl.querySelector('.card[data-id="' + CSS.escape(t.id) + '"] .d');
+      if (d) d.textContent = fmt(t.duration);
+    }
+  });
+  audio.addEventListener('ended', () => {
+    if (!currentId) return;
+    const i = indexOfCurrent();
+    if (cfg.autoNext && i >= 0 && i < tracks.length - 1) playTrack(tracks[i + 1].id);
+    else { audio.currentTime = 0; updatePlayBtn(); lastTouch = Date.now(); }
+  });
+
+  // Barra di avanzamento (trascinabile)
+  const seek = $('#seek');
+  let seeking = false;
+  function seekTo(e) {
+    const r = seek.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    if (isFinite(audio.duration) && audio.duration > 0) {
+      audio.currentTime = ratio * audio.duration;
+      updateProgress(audio.currentTime, audio.duration);
+    }
+  }
+  seek.addEventListener('pointerdown', e => { seeking = true; try { seek.setPointerCapture(e.pointerId); } catch (_) {} seekTo(e); });
+  seek.addEventListener('pointermove', e => { if (seeking) seekTo(e); });
+  seek.addEventListener('pointerup', () => { seeking = false; });
+  seek.addEventListener('pointercancel', () => { seeking = false; });
+
+  // ---------- Inattività ----------
+  function goToRest() {
+    if (currentId) stop();
+    window.scrollTo(0, 0);
+    atRest = true;
+  }
+  ['pointerdown', 'touchstart', 'scroll', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, () => { lastTouch = Date.now(); }, { passive: true, capture: true }));
+  setInterval(() => {
+    const idle = (Date.now() - lastTouch) / 1000;
+    if (!$('#pinOverlay').hidden && idle > 30) closePin();
+    if (!$('#admin').hidden) { if (idle > 180) closeAdmin(); return; }
+    if (currentId && !audio.paused) return;
+    if (cfg.idleReset > 0 && idle > cfg.idleReset && !atRest) goToRest();
+    else if (cfg.idleReset > 0 && idle > cfg.idleReset && window.scrollY > 0) window.scrollTo(0, 0);
+  }, 3000);
+
+  // ---------- Blocco gesti (zoom, menu) ----------
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('touchmove', e => { if (e.scale && e.scale !== 1) e.preventDefault(); }, { passive: false });
+
+  // ---------- Accesso alla gestione ----------
+  let holdTimer = null;
+  const hot = $('#adminHotspot');
+  hot.addEventListener('pointerdown', () => { clearTimeout(holdTimer); holdTimer = setTimeout(openPin, 3000); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => hot.addEventListener(ev, () => clearTimeout(holdTimer)));
+
+  let pinEntry = '';
+  function renderDots() {
+    const n = Math.max(4, cfg.pin.length);
+    $('#pinDots').innerHTML = Array.from({ length: n }, (_, i) => '<i' + (i < pinEntry.length ? ' class="on"' : '') + '></i>').join('');
+  }
+  function openPin() { pinEntry = ''; renderDots(); $('#pinOverlay').hidden = false; }
+  function closePin() { $('#pinOverlay').hidden = true; pinEntry = ''; }
+  $('#pinCancel').addEventListener('click', closePin);
+  $('#keypad').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const k = b.dataset.k;
+    if (k === 'C') pinEntry = pinEntry.slice(0, -1);
+    else if (k === 'OK') {
+      if (pinEntry === cfg.pin) { closePin(); openAdmin(); return; }
+      const d = $('#pinDialog');
+      d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake');
+      pinEntry = '';
+    } else if (pinEntry.length < 8) pinEntry += k;
+    renderDots();
+  });
+
+  // ---------- Gestione ----------
+  function openAdmin() {
+    $('#cfgTitle').value = cfg.title;
+    $('#cfgSubtitle').value = cfg.subtitle;
+    $('#cfgAutoNext').checked = !!cfg.autoNext;
+    $('#cfgIdle').value = String(cfg.idleReset);
+    $('#cfgPin').value = '';
+    $('#pinMsg').textContent = '';
+    $('#importStatus').textContent = '';
+    renderAdminList();
+    renderInfo();
+    $('#admin').hidden = false;
+  }
+  function closeAdmin() {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    $('#admin').hidden = true;
+    renderList();
+    goToRest();
+  }
+  $('#adminClose').addEventListener('click', closeAdmin);
+
+  function renderAdminList() {
+    sortTracks();
+    const el = $('#adminList');
+    if (!tracks.length) { el.innerHTML = '<p class="muted">Nessun brano. Usa "Aggiungi file audio".</p>'; return; }
+    el.innerHTML = tracks.map((t, i) =>
+      '<div class="arow" data-id="' + esc(t.id) + '">' +
+      '<span class="anum">' + pad2(i + 1) + '</span>' +
+      '<input type="text" value="' + esc(t.title) + '" maxlength="120" aria-label="Titolo brano">' +
+      '<span class="ameta">' + (t.duration ? fmt(t.duration) : '–') + ' · ' + (t.size / 1048576).toFixed(1) + ' MB</span>' +
+      '<button class="ibtn" data-act="up"' + (i === 0 ? ' disabled' : '') + ' aria-label="Sposta su">↑</button>' +
+      '<button class="ibtn" data-act="down"' + (i === tracks.length - 1 ? ' disabled' : '') + ' aria-label="Sposta giù">↓</button>' +
+      '<button class="ibtn del" data-act="del" aria-label="Elimina">✕</button></div>'
+    ).join('');
+  }
+
+  $('#adminList').addEventListener('change', async e => {
+    if (e.target.tagName !== 'INPUT') return;
+    const t = tracks.find(x => x.id === e.target.closest('.arow').dataset.id);
+    if (!t) return;
+    t.title = e.target.value.trim() || cleanTitle(t.fileName);
+    e.target.value = t.title;
+    await putMeta(t);
+  });
+
+  $('#adminList').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    sortTracks();
+    const id = b.closest('.arow').dataset.id;
+    const i = tracks.findIndex(x => x.id === id);
+    const act = b.dataset.act;
+    if (act === 'up' || act === 'down') {
+      const j = act === 'up' ? i - 1 : i + 1;
+      if (j < 0 || j >= tracks.length) return;
+      const a = tracks[i], c = tracks[j];
+      const tmp = a.order; a.order = c.order; c.order = tmp;
+      await putMeta(a); await putMeta(c);
+    } else if (act === 'del') {
+      if (!confirm('Eliminare "' + tracks[i].title + '"?')) return;
+      if (currentId === id) stop();
+      await delData(id); await delMeta(id);
+      tracks.splice(i, 1);
+    }
+    renderAdminList();
+    renderInfo();
+  });
+
+  $('#deleteAll').addEventListener('click', async () => {
+    if (!tracks.length || !confirm('Eliminare TUTTI i brani dall\'iPad?')) return;
+    stop();
+    for (const t of tracks.slice()) { await delData(t.id); await delMeta(t.id); }
+    tracks = [];
+    renderAdminList();
+    renderInfo();
+  });
+
+  function probeDuration(file) {
+    return new Promise(res => {
+      const a = document.createElement('audio');
+      const u = URL.createObjectURL(file);
+      let finished = false;
+      const done = d => { if (finished) return; finished = true; URL.revokeObjectURL(u); res(d); };
+      setTimeout(() => done(0), 3000);
+      a.preload = 'metadata';
+      a.onloadedmetadata = () => done(isFinite(a.duration) ? a.duration : 0);
+      a.onerror = () => done(0);
+      a.src = u;
+    });
+  }
+
+  $('#fileInput').addEventListener('change', async e => {
+    const files = Array.from(e.target.files || [])
+      .sort((a, b) => a.name.localeCompare(b.name, 'it', { numeric: true, sensitivity: 'base' }));
+    e.target.value = '';
+    if (!files.length) return;
+    const status = $('#importStatus');
+    const durations = await Promise.all(files.map(probeDuration));
+    let order = tracks.reduce((m, t) => Math.max(m, t.order), -1) + 1;
+    const errors = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      status.textContent = 'Importazione ' + (i + 1) + '/' + files.length + '…';
+      try {
+        const buf = await f.arrayBuffer();
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        await putData(id, buf);
+        const meta = { id, title: cleanTitle(f.name), fileName: f.name, type: f.type || 'audio/mpeg',
+          size: f.size, duration: durations[i] || 0, order: order++ };
+        await putMeta(meta);
+        tracks.push(meta);
+      } catch (err) {
+        errors.push(f.name);
+      }
+    }
+    status.textContent = errors.length
+      ? 'Importati ' + (files.length - errors.length) + ' file. Errori: ' + errors.join(', ')
+      : 'Importati ' + files.length + ' file.';
+    renderAdminList();
+    renderInfo();
+  });
+
+  $('#cfgTitle').addEventListener('change', async e => { cfg.title = e.target.value.trim() || DEFAULTS.title; await saveCfg(); renderHeader(); });
+  $('#cfgSubtitle').addEventListener('change', async e => { cfg.subtitle = e.target.value.trim(); await saveCfg(); renderHeader(); });
+  $('#cfgAutoNext').addEventListener('change', async e => { cfg.autoNext = e.target.checked; await saveCfg(); });
+  $('#cfgIdle').addEventListener('change', async e => { cfg.idleReset = parseInt(e.target.value, 10) || 0; await saveCfg(); });
+  $('#pinSave').addEventListener('click', async () => {
+    const v = $('#cfgPin').value.trim();
+    const msg = $('#pinMsg');
+    if (!/^\d{4,8}$/.test(v)) { msg.textContent = 'Il codice deve avere da 4 a 8 cifre.'; return; }
+    cfg.pin = v; await saveCfg();
+    $('#cfgPin').value = '';
+    msg.textContent = 'Codice salvato.';
+  });
+
+  async function renderInfo() {
+    const total = tracks.reduce((s, t) => s + (t.size || 0), 0);
+    let txt = tracks.length + ' brani · ' + (total / 1048576).toFixed(1) + ' MB di audio';
+    try {
+      if (navigator.storage && navigator.storage.estimate) {
+        const est = await navigator.storage.estimate();
+        if (est && est.usage) txt += ' · spazio usato dalla app: ' + (est.usage / 1048576).toFixed(0) + ' MB';
+      }
+    } catch (_) {}
+    const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+    txt += ' · ' + (standalone ? 'avviata dalla schermata Home' : 'ATTENZIONE: aperta in Safari, non dalla Home');
+    txt += ' · versione ' + APP_VERSION;
+    $('#info').textContent = txt;
+  }
+
+  // ---------- Avvio ----------
+  async function init() {
+    try {
+      db = await openDB();
+      const saved = await loadCfg();
+      if (saved) cfg = Object.assign({}, DEFAULTS, saved);
+      tracks = (await getAllMeta()) || [];
+    } catch (err) {
+      $('#empty').hidden = false;
+      $('#empty').textContent = 'Errore di accesso alla memoria locale: ' + (err && err.message ? err.message : err);
+      return;
+    }
+    renderHeader();
+    renderList();
+    updatePlayBtn();
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (_) {}
+  }
+  init();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  }
+})();
+</script>
+</body>
+</html>
