@@ -1,7 +1,7 @@
 // Service worker: rende la app disponibile offline.
 // IMPORTANTE: ogni volta che modifichi index.html (o altri file), aumenta la versione qui sotto
 // e ricarica tutto su GitHub Pages. Gli audio NON sono qui: stanno nella memoria locale dell'iPad.
-const CACHE = 'audioguida-v2';
+const CACHE = 'audioguida-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -11,7 +11,7 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 // Loghi: messi in cache se presenti (se mancano la app funziona lo stesso)
-const OPTIONAL = ['./img/logo-fonoteca.svg', './img/logo-confederazione.png'];
+const OPTIONAL = ['./img/logo-fonoteca.png', './img/logo-confederazione.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE)
