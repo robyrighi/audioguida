@@ -15,17 +15,17 @@
 <style>
   /* ===== Colori e caratteri (ripresi da fonoteca.ch) ===== */
   :root{
-    --red:#d8232a;         /* rosso istituzionale */
+    --red:#d8232a;
     --red-dark:#b71c22;
     --bg:#ffffff;
-    --page:#ececee;        /* fascia grigia chiara */
-    --band1:#f4f4f4;       /* banda menu: gradiente */
+    --band1:#f4f4f4;
     --band2:#dedede;
-    --box-head:#e6e6e6;    /* testata dei riquadri */
+    --box-head:#e6e6e6;
+    --art-bg:#f1f1f1;      /* sfondo dietro l'immagine nel player */
     --line:#d6d6d6;
     --text:#222222;
     --muted:#666666;
-    --footer:#2b2b2d;      /* fascia scura del piè di pagina */
+    --footer:#2b2b2d;
     --font:Arial,"Helvetica Neue",Helvetica,sans-serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -45,10 +45,18 @@
   #logoFn{height:86px;width:auto;display:block}
   .brand-fallback{font-size:15px;line-height:1.45;letter-spacing:.06em;color:var(--text)}
   .band{background:linear-gradient(var(--band1),var(--band2));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .band .wrap{display:flex;align-items:stretch;min-height:52px}
-  .band .tab{background:var(--red);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;padding:0 22px}
-  .band .sub{display:flex;align-items:center;padding:0 22px;color:var(--text);font-size:18px}
-  #adminHotspot{position:absolute;top:0;right:0;width:110px;height:110px}
+  .band .wrap{display:flex;align-items:stretch;min-height:56px}
+  .band .tab{flex:none;white-space:nowrap;background:var(--red);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;padding:0 22px}
+  .band .sub{flex:1 1 auto;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;align-self:center;padding:0 20px;color:var(--text);font-size:18px;line-height:1.25}
+  @media (max-width:1000px){.band .sub{font-size:16px;padding:0 14px}}
+  #adminHotspot{position:absolute;top:0;right:0;width:200px;height:56px;z-index:2}
+
+  /* Selettore lingua */
+  .langs{flex:none;margin-left:auto;align-self:flex-end;display:flex;align-items:center;gap:8px;padding-left:12px}
+  .langs button{min-width:50px;height:40px;padding:0 10px;border:1px solid #b9b9b9;background:#fff;color:var(--muted);
+    font-size:15px;font-weight:700;letter-spacing:.04em}
+  .langs button[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+  .langs button:active{background:#eee}
 
   /* ===== Griglia a blocchi ===== */
   main{flex:1;padding:34px 0 44px}
@@ -88,29 +96,34 @@
   footer .note{text-align:right}
   footer .note b{color:var(--red);font-weight:400}
 
-  /* ===== Player a popup ===== */
+  /* ===== Player a popup =====
+     Struttura a colonna: banda grigia (fissa) / contenitore immagine (si adatta) / titolo e comandi (fissi).
+     Le tre parti non si sovrappongono mai; l'immagine è sempre intera (contain). */
   .overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:rgba(0,0,0,.55);
     display:flex;align-items:center;justify-content:center;padding:24px}
-  #playerModal .card{position:relative;background:#fff;border-top:4px solid var(--red);width:min(580px,100%);
-    max-height:100%;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-  .pm-head{display:flex;align-items:center;justify-content:space-between;background:var(--box-head);
-    padding:0 6px 0 20px;min-height:56px;color:var(--muted);font-size:17px}
+  #playerModal .card{position:relative;display:flex;flex-direction:column;background:#fff;border-top:4px solid var(--red);
+    width:min(620px,100%);max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);
+    overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .pm-head{flex:none;display:flex;align-items:center;justify-content:space-between;background:var(--box-head);
+    padding:0 6px 0 20px;height:56px;color:var(--muted);font-size:17px}
   #pmClose{width:52px;height:52px;border:none;background:none;color:var(--text);display:flex;align-items:center;justify-content:center}
   #pmClose svg{width:26px;height:26px}
-  .pm-art{position:relative;width:100%;aspect-ratio:1/1;max-height:48vh;background:var(--box-head);overflow:hidden}
-  .pm-art img{width:100%;height:100%;object-fit:cover;display:block}
-  .pm-body{padding:18px 26px 26px}
-  #pmTitle{margin:0;font-size:26px;font-weight:700;line-height:1.2}
-  .bar{display:flex;align-items:center;gap:14px;margin-top:16px;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums}
+  .pm-art{flex:0 1 auto;min-height:0;position:relative;width:100%;background:var(--art-bg);overflow:hidden;
+    height:min(560px, calc(100vh - 48px - 60px - 230px));height:min(560px, calc(100dvh - 48px - 60px - 230px))}
+  .pm-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+  .pm-body{flex:none;padding:18px 26px 24px;border-top:1px solid var(--line)}
+  #pmTitle{margin:0;font-size:26px;font-weight:700;line-height:1.2;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .bar{display:flex;align-items:center;gap:14px;margin-top:14px;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums}
   .seek{flex:1;height:36px;display:flex;align-items:center;touch-action:none}
   .seek-bg{position:relative;width:100%;height:5px;background:var(--line)}
   .seek-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--red)}
   .knob{position:absolute;top:50%;left:0;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:var(--red)}
-  .ctrls{display:flex;justify-content:center;align-items:center;gap:24px;margin-top:10px}
+  .ctrls{display:flex;justify-content:center;align-items:center;gap:24px;margin-top:8px}
   .btn{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:#fff;
     display:flex;align-items:center;justify-content:center;padding:0;color:var(--text)}
   .btn:active{background:#f0f0f0}
-  .btn.main{width:86px;height:86px;background:var(--red);color:#fff;border:none}
+  .btn.main{width:84px;height:84px;background:var(--red);color:#fff;border:none}
   .btn.main:active{background:var(--red-dark)}
   .btn svg{width:28px;height:28px}
   .btn.main svg{width:36px;height:36px}
@@ -138,6 +151,7 @@
   .sheet-head h2{margin:0;font-size:28px}
   section{border-top:1px solid var(--line);padding:18px 0}
   section h3{margin:0 0 14px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--red)}
+  section h4{margin:18px 0 8px;font-size:15px;color:var(--muted);font-weight:400}
   .pill{display:inline-flex;align-items:center;height:46px;padding:0 20px;border:1px solid var(--line);background:#fff;font-size:17px;white-space:nowrap}
   .pill.accent{background:var(--red);color:#fff;border:none;font-weight:700}
   .pill.danger{color:var(--red)}
@@ -158,6 +172,9 @@
   .field span{display:block;color:var(--muted);margin-bottom:6px;font-size:15px}
   .field input,.field select,#cfgPin{width:100%;max-width:520px;height:46px;padding:0 12px;border:1px solid var(--line);background:#fff;color:var(--text);font-size:17px}
   #cfgPin{width:240px}
+  .lrow{display:flex;align-items:center;gap:10px;margin-bottom:8px;max-width:620px}
+  .lrow b{width:34px;color:var(--red);font-size:14px}
+  .lrow input{flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid var(--line);background:#fff;color:var(--text);font-size:17px}
   .check{display:flex;gap:12px;align-items:center;margin-bottom:16px;font-size:17px}
   .check input{width:24px;height:24px;accent-color:var(--red)}
 
@@ -165,6 +182,8 @@
     .wrap{padding:0 16px}
     #logoFn{height:60px}
     .band .tab{font-size:17px;padding:0 14px}.band .sub{display:none}
+    .langs{gap:4px}.langs button{min-width:40px;padding:0 6px}
+    .brand{flex-wrap:wrap;gap:12px}
     #grid{grid-template-columns:repeat(2,1fr);gap:14px}
     footer .dark .wrap,footer .light .wrap{flex-direction:column;align-items:flex-start;text-align:left}
     footer .note{text-align:left}
@@ -177,13 +196,14 @@
 <header>
   <div class="wrap brand">
     <!-- Logo Fonoteca: file img/logo-fonoteca.png nel repository -->
-    <img id="logoFn" src="img/logo-fonoteca.png" alt="Fonoteca nazionale svizzera">
+    <img id="logoFn" src="img/logo-fonoteca.png" alt="">
     <div class="brand-fallback" id="logoFnFallback" hidden>Fonoteca nazionale svizzera<br>Phonothèque nationale suisse<br>Schweizerische Nationalphonothek<br>Fonoteca naziunala svizra<br>Swiss National Sound Archives</div>
+    <div class="langs" id="langs"></div>
   </div>
   <div class="band">
     <div class="wrap">
       <div class="tab" id="exTitle">Audioguida</div>
-      <div class="sub" id="exSubtitle">Tocca un brano per ascoltarlo</div>
+      <div class="sub" id="exSubtitle"></div>
     </div>
   </div>
   <div id="adminHotspot" aria-hidden="true"></div>
@@ -192,7 +212,7 @@
 <main>
   <div class="wrap">
     <ul id="grid"></ul>
-    <div id="empty" hidden>Nessun brano caricato.<br>Per aggiungere i file audio tieni premuto per 3 secondi l'angolo in alto a destra dello schermo.</div>
+    <div id="empty" hidden><span id="emptyText"></span><br><small>(Gestione: tieni premuto 3 secondi l'angolo in alto a destra)</small></div>
   </div>
 </main>
 
@@ -200,15 +220,15 @@
   <div class="dark">
     <div class="wrap">
       <div class="left" id="footLeft"></div>
-      <div id="footRight">Fonoteca nazionale svizzera, Via Cortivallo 11, CH-6900 Lugano</div>
+      <div id="footRight"></div>
     </div>
   </div>
   <div class="light">
     <div class="wrap">
       <!-- Logo Confederazione: file img/logo-confederazione.png nel repository -->
-      <img id="logoCh" src="img/logo-confederazione.png" alt="Confederazione Svizzera">
+      <img id="logoCh" src="img/logo-confederazione.png" alt="">
       <div class="ch-fallback" id="logoChFallback" hidden><i></i><span>Schweizerische Eidgenossenschaft<br>Confédération suisse<br>Confederazione Svizzera<br>Confederaziun svizra</span></div>
-      <div class="note">La Fonoteca nazionale svizzera è una sezione della <b>Biblioteca nazionale svizzera</b></div>
+      <div class="note" id="footNote"></div>
     </div>
   </div>
 </footer>
@@ -220,7 +240,7 @@
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
     <div class="pm-head">
       <span id="pmNum"></span>
-      <button id="pmClose" aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button>
+      <button id="pmClose"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button>
     </div>
     <div class="pm-art" id="pmArt"></div>
     <div class="pm-body">
@@ -231,9 +251,9 @@
         <span id="tDur">0:00</span>
       </div>
       <div class="ctrls">
-        <button class="btn" id="btnPrev" aria-label="Brano precedente"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5.5v13L9.5 12z" fill="currentColor"/></svg></button>
-        <button class="btn main" id="btnPlay" aria-label="Riproduci o metti in pausa"></button>
-        <button class="btn" id="btnNext" aria-label="Brano successivo"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5.5v13L14.5 12z" fill="currentColor"/></svg></button>
+        <button class="btn" id="btnPrev"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5.5v13L9.5 12z" fill="currentColor"/></svg></button>
+        <button class="btn main" id="btnPlay"></button>
+        <button class="btn" id="btnNext"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5.5v13L14.5 12z" fill="currentColor"/></svg></button>
       </div>
     </div>
   </div>
@@ -254,7 +274,7 @@
   </div>
 </div>
 
-<!-- Gestione -->
+<!-- Gestione (solo in italiano) -->
 <div id="admin" class="overlay" hidden>
   <div class="sheet">
     <div class="sheet-head">
@@ -276,15 +296,24 @@
 
     <section>
       <h3>Testi</h3>
-      <label class="field"><span>Titolo (riquadro rosso)</span><input id="cfgTitle" type="text" maxlength="60"></label>
-      <label class="field"><span>Sottotitolo (accanto al titolo)</span><input id="cfgSubtitle" type="text" maxlength="120"></label>
-      <label class="field"><span>Testo in basso a sinistra (es. nome dell'esposizione, date)</span><input id="cfgFoot" type="text" maxlength="140"></label>
+      <label class="field"><span>Titolo dell'esposizione (riquadro rosso, uguale in tutte le lingue)</span><input id="cfgTitle" type="text" maxlength="60"></label>
+      <h4>Sottotitolo accanto al titolo (vuoto = testo standard "Tocca un brano per ascoltarlo" tradotto)</h4>
+      <div id="cfgSubtitle"></div>
+      <h4>Testo in basso a sinistra, es. nome e date dell'esposizione (vuoto = usa il testo italiano)</h4>
+      <div id="cfgFoot"></div>
+    </section>
+
+    <section>
+      <h3>Lingue</h3>
+      <label class="field"><span>Lingua all'avvio e dopo l'inattività</span>
+        <select id="cfgLang"></select>
+      </label>
     </section>
 
     <section>
       <h3>Comportamento</h3>
       <label class="check"><input type="checkbox" id="cfgAutoNext"><span>Al termine di un brano passa automaticamente al successivo</span></label>
-      <label class="field"><span>Chiudi il player e torna alla schermata iniziale dopo inattività (solo quando nulla è in riproduzione)</span>
+      <label class="field"><span>Chiudi il player, torna alla schermata iniziale e alla lingua predefinita dopo inattività (solo quando nulla è in riproduzione)</span>
         <select id="cfgIdle">
           <option value="30">30 secondi</option>
           <option value="60">1 minuto</option>
@@ -315,8 +344,61 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2.0.0';
-  const DEFAULTS = { title: 'Audioguida', subtitle: 'Tocca un brano per ascoltarlo', foot: '', pin: '1234', autoNext: false, idleReset: 60 };
+  const APP_VERSION = '3.0.0';
+
+  // ===== Testi per i visitatori in 5 lingue (ordine dei pulsanti come su fonoteca.ch) =====
+  const LANGS = ['it', 'fr', 'de', 'rm', 'en'];
+  const LANG_NAMES = { it: 'Italiano', fr: 'Français', de: 'Deutsch', rm: 'Rumantsch', en: 'English' };
+  const T = {
+    it: {
+      subtitle: 'Tocca un brano per ascoltarlo',
+      trackOf: 'Brano {n} di {t}',
+      empty: 'Nessun brano disponibile.',
+      institution: 'Fonoteca nazionale svizzera',
+      note: 'La Fonoteca nazionale svizzera è una sezione della <b>Biblioteca nazionale svizzera</b>',
+      close: 'Chiudi', prev: 'Brano precedente', next: 'Brano successivo', play: 'Riproduci', pause: 'Pausa',
+      confed: 'Confederazione Svizzera'
+    },
+    fr: {
+      subtitle: 'Touchez une piste pour l’écouter',
+      trackOf: 'Piste {n} sur {t}',
+      empty: 'Aucune piste disponible.',
+      institution: 'Phonothèque nationale suisse',
+      note: 'La Phonothèque nationale suisse est une section de la <b>Bibliothèque nationale suisse</b>',
+      close: 'Fermer', prev: 'Piste précédente', next: 'Piste suivante', play: 'Lecture', pause: 'Pause',
+      confed: 'Confédération suisse'
+    },
+    de: {
+      subtitle: 'Tippen Sie auf einen Titel, um ihn anzuhören',
+      trackOf: 'Titel {n} von {t}',
+      empty: 'Keine Titel verfügbar.',
+      institution: 'Schweizerische Nationalphonothek',
+      note: 'Die Schweizerische Nationalphonothek ist eine Abteilung der <b>Schweizerischen Nationalbibliothek</b>',
+      close: 'Schliessen', prev: 'Vorheriger Titel', next: 'Nächster Titel', play: 'Abspielen', pause: 'Pause',
+      confed: 'Schweizerische Eidgenossenschaft'
+    },
+    rm: {
+      subtitle: 'Tutgai in titel per al tadlar',
+      trackOf: 'Titel {n} da {t}',
+      empty: 'Nagins titels disponibels.',
+      institution: 'Fonoteca naziunala svizra',
+      note: 'La Fonoteca naziunala svizra è ina secziun da la <b>Biblioteca naziunala svizra</b>',
+      close: 'Serrar', prev: 'Titel precedent', next: 'Proxim titel', play: 'Tadlar', pause: 'Pausa',
+      confed: 'Confederaziun svizra'
+    },
+    en: {
+      subtitle: 'Tap a track to listen',
+      trackOf: 'Track {n} of {t}',
+      empty: 'No tracks available.',
+      institution: 'Swiss National Sound Archives',
+      note: 'The Swiss National Sound Archives are a section of the <b>Swiss National Library</b>',
+      close: 'Close', prev: 'Previous track', next: 'Next track', play: 'Play', pause: 'Pause',
+      confed: 'Swiss Confederation'
+    }
+  };
+  const ADDRESS = 'Via Cortivallo 11, CH-6900 Lugano';
+
+  const DEFAULTS = { title: 'Audioguida', subtitles: {}, foots: {}, lang: 'it', pin: '1234', autoNext: false, idleReset: 60 };
   const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>';
   const ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>';
   const ICON_NOTE = '<svg viewBox="0 0 24 24"><path d="M9 18.5a2.5 2.5 0 1 1-2.5-2.5c.53 0 1.02.16 1.5.43V5l11-2v12.5a2.5 2.5 0 1 1-2.5-2.5c.53 0 1.02.16 1.5.43V7.3L9 8.9z" fill="currentColor"/></svg>';
@@ -325,18 +407,24 @@
   const audio = $('#audio');
   const gridEl = $('#grid');
 
-  // Loghi: se il file non c'è, mostra la versione testuale
   $('#logoFn').addEventListener('error', () => { $('#logoFn').hidden = true; $('#logoFnFallback').hidden = false; });
   $('#logoCh').addEventListener('error', () => { $('#logoCh').hidden = true; $('#logoChFallback').hidden = false; });
 
   let db = null;
-  let cfg = Object.assign({}, DEFAULTS);
+  let cfg = JSON.parse(JSON.stringify(DEFAULTS));
+  let lang = 'it';
   let tracks = [];
   let currentId = null;
   let currentUrl = null;
   let lastTouch = Date.now();
   let atRest = true;
   const imgUrls = new Map();
+
+  const tr = (key, vars) => {
+    let s = (T[lang] && T[lang][key]) || T.it[key] || '';
+    if (vars) Object.keys(vars).forEach(k => { s = s.replace('{' + k + '}', vars[k]); });
+    return s;
+  };
 
   // ---------- IndexedDB ----------
   function openDB() {
@@ -374,6 +462,23 @@
   const loadCfg = () => run('kv', 'readonly', s => s.get('config'));
   const saveCfg = () => run('kv', 'readwrite', s => s.put(cfg, 'config'));
 
+  // Configurazioni delle versioni precedenti: sottotitolo e piè di pagina erano un unico testo
+  function migrateCfg(saved) {
+    const c = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), saved || {});
+    if (typeof c.subtitle === 'string') {
+      if (c.subtitle && c.subtitle !== T.it.subtitle) c.subtitles = Object.assign({ it: c.subtitle }, c.subtitles);
+      delete c.subtitle;
+    }
+    if (typeof c.foot === 'string') {
+      if (c.foot) c.foots = Object.assign({ it: c.foot }, c.foots);
+      delete c.foot;
+    }
+    if (!LANGS.includes(c.lang)) c.lang = 'it';
+    c.subtitles = c.subtitles || {};
+    c.foots = c.foots || {};
+    return c;
+  }
+
   // ---------- Utilità ----------
   const pad2 = n => String(n).padStart(2, '0');
   function fmt(sec) {
@@ -391,7 +496,6 @@
   const indexOfCurrent = () => tracks.findIndex(t => t.id === currentId);
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-  // Ridimensiona l'immagine (lato max 1000 px) e la salva come JPEG
   function resizeImage(file, max) {
     return new Promise((res, rej) => {
       const u = URL.createObjectURL(file);
@@ -446,13 +550,40 @@
   document.addEventListener('touchend', unlock, true);
   document.addEventListener('click', unlock, true);
 
+  // ---------- Lingua ----------
+  function renderLangs() {
+    $('#langs').innerHTML = LANGS.map(l =>
+      '<button data-lang="' + l + '" aria-pressed="' + (l === lang) + '" lang="' + l + '" title="' + LANG_NAMES[l] + '">' + l.toUpperCase() + '</button>'
+    ).join('');
+  }
+  $('#langs').addEventListener('click', e => {
+    const b = e.target.closest('button[data-lang]');
+    if (b) setLang(b.dataset.lang);
+  });
+  function setLang(l) {
+    if (!LANGS.includes(l)) l = 'it';
+    lang = l;
+    document.documentElement.lang = l;
+    renderLangs();
+    renderTexts();
+    if (currentId) { const t = tracks.find(x => x.id === currentId); if (t) $('#pmNum').textContent = tr('trackOf', { n: tracks.indexOf(t) + 1, t: tracks.length }); }
+  }
+
   // ---------- Rendering ----------
-  function renderHeader() {
+  function renderTexts() {
     $('#exTitle').textContent = cfg.title;
-    $('#exSubtitle').textContent = cfg.subtitle;
-    $('#exSubtitle').hidden = !cfg.subtitle;
-    $('#footLeft').textContent = cfg.foot || '';
     document.title = cfg.title;
+    $('#exSubtitle').textContent = (cfg.subtitles[lang] || '').trim() || tr('subtitle');
+    $('#footLeft').textContent = (cfg.foots[lang] || '').trim() || (cfg.foots.it || '').trim();
+    $('#footRight').textContent = tr('institution') + ', ' + ADDRESS;
+    $('#footNote').innerHTML = tr('note');
+    $('#emptyText').textContent = tr('empty');
+    $('#logoFn').alt = tr('institution');
+    $('#logoCh').alt = tr('confed');
+    $('#pmClose').setAttribute('aria-label', tr('close'));
+    $('#btnPrev').setAttribute('aria-label', tr('prev'));
+    $('#btnNext').setAttribute('aria-label', tr('next'));
+    updatePlayBtn();
   }
   const artHTML = t => { const u = imgUrls.get(t.id); return u ? '<img src="' + u + '" alt="">' : '<span class="ph">' + ICON_NOTE + '</span>'; };
   function renderGrid() {
@@ -478,7 +609,7 @@
   function showPlayer(t) {
     const i = tracks.indexOf(t);
     $('#pmArt').innerHTML = artHTML(t);
-    $('#pmNum').textContent = 'Brano ' + (i + 1) + ' di ' + tracks.length;
+    $('#pmNum').textContent = tr('trackOf', { n: i + 1, t: tracks.length });
     $('#pmTitle').textContent = t.title;
     $('#playerModal').hidden = false;
   }
@@ -549,7 +680,9 @@
   }
   function updatePlayBtn() {
     const playing = !!currentId && !audio.paused;
-    $('#btnPlay').innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    const b = $('#btnPlay');
+    b.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    b.setAttribute('aria-label', playing ? tr('pause') : tr('play'));
     document.body.classList.toggle('is-playing', playing);
   }
   function updateProgress(cur, dur) {
@@ -601,17 +734,18 @@
   function goToRest() {
     if (currentId) stop();
     window.scrollTo(0, 0);
+    if (lang !== cfg.lang) setLang(cfg.lang);
     atRest = true;
   }
   ['pointerdown', 'touchstart', 'scroll', 'keydown'].forEach(ev =>
-    document.addEventListener(ev, () => { lastTouch = Date.now(); }, { passive: true, capture: true }));
+    document.addEventListener(ev, () => { lastTouch = Date.now(); atRestPending(); }, { passive: true, capture: true }));
+  function atRestPending() { atRest = false; }
   setInterval(() => {
     const idle = (Date.now() - lastTouch) / 1000;
     if (!$('#pinOverlay').hidden && idle > 30) closePin();
     if (!$('#admin').hidden) { if (idle > 180) closeAdmin(); return; }
     if (currentId && !audio.paused) return;
     if (cfg.idleReset > 0 && idle > cfg.idleReset && !atRest) goToRest();
-    else if (cfg.idleReset > 0 && idle > cfg.idleReset && window.scrollY > 0) window.scrollTo(0, 0);
   }, 3000);
 
   // ---------- Blocco gesti ----------
@@ -648,11 +782,18 @@
   });
 
   // ---------- Gestione ----------
+  function langInputs(containerId, values, placeholderFn) {
+    $(containerId).innerHTML = LANGS.map(l =>
+      '<div class="lrow"><b>' + l.toUpperCase() + '</b><input type="text" maxlength="140" data-lang="' + l + '" value="' +
+      esc(values[l] || '') + '" placeholder="' + esc(placeholderFn(l)) + '"></div>'
+    ).join('');
+  }
   function openAdmin() {
     if (currentId) stop();
     $('#cfgTitle').value = cfg.title;
-    $('#cfgSubtitle').value = cfg.subtitle;
-    $('#cfgFoot').value = cfg.foot || '';
+    langInputs('#cfgSubtitle', cfg.subtitles, l => T[l].subtitle);
+    langInputs('#cfgFoot', cfg.foots, l => l === 'it' ? '' : (cfg.foots.it || ''));
+    $('#cfgLang').innerHTML = LANGS.map(l => '<option value="' + l + '"' + (l === cfg.lang ? ' selected' : '') + '>' + LANG_NAMES[l] + '</option>').join('');
     $('#cfgAutoNext').checked = !!cfg.autoNext;
     $('#cfgIdle').value = String(cfg.idleReset);
     $('#cfgPin').value = '';
@@ -665,11 +806,21 @@
   function closeAdmin() {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     $('#admin').hidden = true;
-    renderHeader();
     renderGrid();
     goToRest();
+    setLang(cfg.lang);
   }
   $('#adminClose').addEventListener('click', closeAdmin);
+
+  $('#cfgSubtitle').addEventListener('change', async e => {
+    const l = e.target.dataset.lang; if (!l) return;
+    cfg.subtitles[l] = e.target.value.trim(); await saveCfg(); renderTexts();
+  });
+  $('#cfgFoot').addEventListener('change', async e => {
+    const l = e.target.dataset.lang; if (!l) return;
+    cfg.foots[l] = e.target.value.trim(); await saveCfg(); renderTexts();
+  });
+  $('#cfgLang').addEventListener('change', async e => { cfg.lang = e.target.value; await saveCfg(); });
 
   function renderAdminList() {
     sortTracks();
@@ -793,9 +944,7 @@
     renderInfo();
   });
 
-  $('#cfgTitle').addEventListener('change', async e => { cfg.title = e.target.value.trim() || DEFAULTS.title; await saveCfg(); renderHeader(); });
-  $('#cfgSubtitle').addEventListener('change', async e => { cfg.subtitle = e.target.value.trim(); await saveCfg(); renderHeader(); });
-  $('#cfgFoot').addEventListener('change', async e => { cfg.foot = e.target.value.trim(); await saveCfg(); renderHeader(); });
+  $('#cfgTitle').addEventListener('change', async e => { cfg.title = e.target.value.trim() || DEFAULTS.title; await saveCfg(); renderTexts(); });
   $('#cfgAutoNext').addEventListener('change', async e => { cfg.autoNext = e.target.checked; await saveCfg(); });
   $('#cfgIdle').addEventListener('change', async e => { cfg.idleReset = parseInt(e.target.value, 10) || 0; await saveCfg(); });
   $('#pinSave').addEventListener('click', async () => {
@@ -826,21 +975,21 @@
   async function init() {
     try {
       db = await openDB();
-      const saved = await loadCfg();
-      if (saved) cfg = Object.assign({}, DEFAULTS, saved);
+      cfg = migrateCfg(await loadCfg());
       tracks = (await getAllMeta()) || [];
       tracks.forEach(t => { if (t.hasImg === undefined) t.hasImg = false; });
       await loadImages();
     } catch (err) {
       $('#empty').hidden = false;
-      $('#empty').textContent = 'Errore di accesso alla memoria locale: ' + (err && err.message ? err.message : err);
+      $('#emptyText').textContent = 'Errore di accesso alla memoria locale: ' + (err && err.message ? err.message : err);
       return;
     }
-    renderHeader();
+    setLang(cfg.lang);
     renderGrid();
-    updatePlayBtn();
+    atRest = true;
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (_) {}
   }
+  renderLangs();
   init();
 
   if ('serviceWorker' in navigator) {

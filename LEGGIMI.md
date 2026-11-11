@@ -55,6 +55,15 @@ L'importazione li ordina così e toglie il numero dal titolo mostrato.
   e il ritorno alla schermata iniziale dopo inattività.
 - La gestione si chiude da sola dopo 3 minuti senza tocchi.
 
+### Lingue (dalla versione 3)
+
+- I visitatori scelgono la lingua con i pulsanti IT · FR · DE · RM · EN in alto a destra.
+- Sono tradotti tutti i testi per i visitatori; titolo dell'esposizione e titoli dei brani restano invariati.
+- In Gestione → *Testi*: sottotitolo e testo del piè di pagina si possono scrivere per ogni lingua
+  (campo vuoto = testo standard tradotto, oppure il testo italiano per il piè di pagina).
+- In Gestione → *Lingue*: lingua all'avvio; dopo l'inattività la app torna a questa lingua.
+- La Gestione resta in italiano.
+
 ## 5. Test prima dell'esposizione
 
 1. Attiva **modalità aereo**, chiudi la app (scorri via dal multitasking) e riaprila dall'icona:

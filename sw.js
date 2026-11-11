@@ -1,7 +1,7 @@
 // Service worker: rende la app disponibile offline.
 // IMPORTANTE: ogni volta che modifichi index.html (o altri file), aumenta la versione qui sotto
 // e ricarica tutto su GitHub Pages. Gli audio NON sono qui: stanno nella memoria locale dell'iPad.
-const CACHE = 'audioguida-v3';
+const CACHE = 'audioguida-v4';
 const ASSETS = [
   './',
   './index.html',
