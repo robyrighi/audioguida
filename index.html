@@ -78,8 +78,8 @@
   .tile .txt{flex:1;min-width:0}
   .tile .t{display:block;font-size:18px;font-weight:700;line-height:1.25;color:var(--text)}
   .tile .a{display:block;margin-top:3px;font-size:16px;line-height:1.25;color:var(--text)}
-  .tile .d{margin-top:auto;padding:0 14px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
-  .tile .d .arch{text-align:right}
+  .tile .d{margin-top:auto;padding:0 6px 8px 14px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+  .tile .d .arch{margin-left:auto;text-align:right;white-space:nowrap}
   .tile.playing{border-color:var(--red)}
   body.is-playing .tile.playing .playmark{animation:pulse 1.4s ease-in-out infinite}
   @keyframes pulse{50%{transform:scale(1.12)}}
@@ -356,7 +356,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '3.4.0';
+  const APP_VERSION = '3.4.1';
 
   // ===== Testi per i visitatori in 5 lingue (ordine dei pulsanti come su fonoteca.ch) =====
   const LANGS = ['it', 'fr', 'de', 'rm', 'en'];
@@ -617,7 +617,7 @@
     gridEl.innerHTML = tracks.map((t, i) =>
       '<li><button class="tile' + (t.id === currentId ? ' playing' : '') + '" data-id="' + esc(t.id) + '">' +
       '<span class="thumb">' + artHTML(t) + '<span class="playmark">' + ICON_PLAY + '</span></span>' +
-      '<span class="meta"><span class="n">' + pad2(i + 1) + '</span><span class="txt"><span class="t">' + esc(t.title) + '</span>' +
+      '<span class="meta"><span class="txt"><span class="t">' + esc(t.title) + '</span>' +
       (t.artist ? '<span class="a">' + esc(t.artist) + '</span>' : '') + '</span></span>' +
       '<span class="d"><span>' + (t.duration ? fmt(t.duration) : '') + '</span>' +
       (fileCodes(t.fileName) ? '<span class="arch">' + esc(tr('archive') + ' ' + fileCodes(t.fileName).archive) + '</span>' : '') + '</span>' +
