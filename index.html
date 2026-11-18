@@ -293,10 +293,13 @@
       <h3>Brani</h3>
       <div class="row-actions">
         <label class="pill accent" for="fileInput">+ Aggiungi file audio</label>
+        <label class="pill" for="updateAllInput">⟳ Aggiorna tutti</label>
+        <input type="file" id="updateAllInput" class="vh" accept="audio/*,.mp3,.m4a" multiple>
         <input type="file" id="fileInput" class="vh" accept="audio/*,.mp3,.m4a" multiple>
         <span id="importStatus" class="muted"></span>
       </div>
-      <p class="muted">Tocca il riquadro a sinistra di ogni brano per scegliere o cambiare l'immagine. Con ⟳ sostituisci solo il file audio: immagine, posizione, titolo e artista restano.</p>
+      <p class="muted">Tocca il riquadro a sinistra di ogni brano per scegliere o cambiare l'immagine. Con ⟳ sostituisci solo il file audio: immagine, posizione, titolo e artista restano.<br>
+        <b>⟳ Aggiorna tutti</b>: seleziona tutti i file della cartella VLC; ogni brano viene aggiornato con il file che ha lo stesso nome di quello importato in origine. I file senza corrispondenza vengono ignorati.</p>
       <div id="adminList"></div>
       <input type="file" id="imgInput" class="vh" accept="image/*">
       <input type="file" id="replaceInput" class="vh" accept="audio/*,.mp3,.m4a">
@@ -352,7 +355,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '3.2.0';
+  const APP_VERSION = '3.3.0';
 
   // ===== Testi per i visitatori in 5 lingue (ordine dei pulsanti come su fonoteca.ch) =====
   const LANGS = ['it', 'fr', 'de', 'rm', 'en'];
@@ -901,6 +904,21 @@
 
   // Sostituisce solo l'audio di un brano: immagine, posizione, titolo e artista restano.
   // Se titolo o artista sono vuoti, vengono presi dai tag del nuovo file.
+  async function replaceAudio(t, f) {
+    if (currentId === t.id) stop();
+    const duration = await probeDuration(f);
+    const buf = await f.arrayBuffer();
+    await putData(t.id, buf);
+    const tag = readId3(buf);
+    if (!t.title) t.title = tag.title || cleanTitle(f.name);
+    if (!t.artist && tag.artist) t.artist = tag.artist;
+    t.fileName = f.name;
+    t.type = f.type || 'audio/mpeg';
+    t.size = f.size;
+    t.duration = duration || 0;
+    await putMeta(t);
+  }
+
   $('#replaceInput').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
@@ -910,22 +928,41 @@
     const status = $('#importStatus');
     status.textContent = 'Sostituzione audio di "' + t.title + '"…';
     try {
-      if (currentId === id) stop();
-      const duration = await probeDuration(f);
-      const buf = await f.arrayBuffer();
-      await putData(id, buf);
-      const tag = readId3(buf);
-      if (!t.title) t.title = tag.title || cleanTitle(f.name);
-      if (!t.artist && tag.artist) t.artist = tag.artist;
-      t.fileName = f.name;
-      t.type = f.type || 'audio/mpeg';
-      t.size = f.size;
-      t.duration = duration || 0;
-      await putMeta(t);
+      await replaceAudio(t, f);
       status.textContent = 'Audio sostituito: "' + t.title + '" ← ' + f.name;
     } catch (err) {
       status.textContent = 'Errore nella sostituzione: ' + (err && err.message ? err.message : err);
     }
+    renderAdminList();
+    renderInfo();
+  });
+
+  // Aggiorna tutti: abbina i file scelti ai brani tramite il nome del file memorizzato
+  // (confronto senza maiuscole/minuscole) e sostituisce l'audio di ogni brano trovato, sempre.
+  $('#updateAllInput').addEventListener('change', async e => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    const status = $('#importStatus');
+    const key = n => String(n || '').normalize('NFC').trim().toLowerCase();
+    const byName = new Map(files.map(f => [key(f.name), f]));
+    sortTracks();
+    const todo = tracks.filter(t => byName.has(key(t.fileName)));
+    const missing = tracks.filter(t => !byName.has(key(t.fileName)));
+    const used = new Set(todo.map(t => key(t.fileName)));
+    const ignored = files.filter(f => !used.has(key(f.name)));
+    const errors = [];
+    for (let i = 0; i < todo.length; i++) {
+      const t = todo[i];
+      status.textContent = 'Aggiornamento ' + (i + 1) + '/' + todo.length + '…';
+      try { await replaceAudio(t, byName.get(key(t.fileName))); }
+      catch (err) { errors.push(t.fileName); }
+    }
+    let msg = 'Aggiornati ' + (todo.length - errors.length) + ' brani su ' + tracks.length + '.';
+    if (missing.length) msg += ' Senza file corrispondente: ' + missing.map(t => t.fileName).join(', ') + '.';
+    if (ignored.length) msg += ' File ignorati (nessun brano con questo nome): ' + ignored.map(f => f.name).join(', ') + '.';
+    if (errors.length) msg += ' Errori: ' + errors.join(', ') + '.';
+    status.textContent = msg;
     renderAdminList();
     renderInfo();
   });
