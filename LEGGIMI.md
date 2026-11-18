@@ -96,9 +96,11 @@ perché usa il tastierino della app).
 ## 7. Aggiornare la app
 
 1. Modifica i file.
-2. In `sw.js` aumenta la versione: `audioguida-v1` → `audioguida-v2`.
-3. Ricarica i file su GitHub (Upload files, sovrascrivi).
-4. Sull'iPad, con Wi-Fi: apri la app, chiudila e riaprila (eventualmente due volte).
+2. In `sw.js` aumenta la versione (`audioguida-vN` → `audioguida-vN+1`).
+3. Ricarica i file su GitHub. GitHub Pages può impiegare fino a ~10 minuti a servire la nuova versione.
+4. Sull'iPad, con Wi-Fi: apri la app. Dalla versione 3.4.3 basta una apertura (la pagina viene sempre
+   scaricata dalla rete se disponibile; senza rete si usa la copia salvata).
+   Il primo passaggio dalla 3.4.2 o precedenti alla 3.4.3 può richiedere 2–3 aperture.
 
 Gli audio importati non vengono toccati dagli aggiornamenti.
 **Se elimini l'icona dalla Home perdi anche gli audio importati**: andranno reimportati.

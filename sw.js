@@ -1,7 +1,11 @@
 // Service worker: rende la app disponibile offline.
-// IMPORTANTE: ogni volta che modifichi index.html (o altri file), aumenta la versione qui sotto
-// e ricarica tutto su GitHub Pages. Gli audio NON sono qui: stanno nella memoria locale dell'iPad.
-const CACHE = 'audioguida-v10';
+// Strategia:
+//  - pagina (index.html) e manifest: PRIMA la rete (versione aggiornata se c'è connessione),
+//    se la rete manca o è lenta (> 4 s) si usa la copia salvata;
+//  - icone e loghi: prima la copia salvata.
+// Gli audio NON sono qui: stanno nella memoria locale dell'iPad (IndexedDB).
+// Ad ogni modifica si aumenta comunque la versione qui sotto.
+const CACHE = 'audioguida-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -12,20 +16,40 @@ const ASSETS = [
 ];
 // Loghi: messi in cache se presenti (se mancano la app funziona lo stesso)
 const OPTIONAL = ['./img/logo-fonoteca.png', './img/logo-confederazione.png'];
+const NETWORK_TIMEOUT_MS = 4000;
+
+// Scarica sempre dal server, ignorando la cache HTTP del browser
+const fresh = url => fetch(new Request(url, { cache: 'reload' }));
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE)
-    .then(c => c.addAll(ASSETS).then(() => Promise.all(OPTIONAL.map(u => c.add(u).catch(() => {})))))
-    .then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await Promise.all(ASSETS.map(async u => {
+      const r = await fresh(u);
+      if (!r.ok) throw new Error('Download fallito: ' + u);
+      await c.put(u, r);
+    }));
+    await Promise.all(OPTIONAL.map(async u => {
+      try { const r = await fresh(u); if (r.ok) await c.put(u, r); } catch (_) {}
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+}
 
 self.addEventListener('fetch', event => {
   const req = event.request;
@@ -33,18 +57,36 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  const isPage = req.mode === 'navigate' || /\/(index\.html)?$/.test(url.pathname) || url.pathname.endsWith('/manifest.json');
+
+  if (isPage) {
+    // Rete prima: aggiorna la copia salvata; senza rete usa la copia salvata
+    event.respondWith((async () => {
+      const key = url.pathname.endsWith('/manifest.json') ? './manifest.json' : './index.html';
+      try {
+        const r = await withTimeout(fetch(new Request(req.url, { cache: 'no-store' })), NETWORK_TIMEOUT_MS);
+        if (r && r.ok) {
+          const c = await caches.open(CACHE);
+          await c.put(key, r.clone());
+          return r;
+        }
+        throw new Error('HTTP ' + (r && r.status));
+      } catch (_) {
+        const cached = await caches.match(key);
+        return cached || Response.error();
+      }
+    })());
+    return;
+  }
+
+  // Icone e loghi: copia salvata prima
   event.respondWith((async () => {
-    if (req.mode === 'navigate') {
-      const page = await caches.match('./index.html');
-      if (page) return page;
-    }
     const cached = await caches.match(req, { ignoreSearch: true });
     if (cached) return cached;
     try {
       return await fetch(req);
-    } catch (err) {
-      const fallback = await caches.match('./index.html');
-      return fallback || Response.error();
+    } catch (_) {
+      return Response.error();
     }
   })());
 });

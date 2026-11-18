@@ -356,7 +356,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '3.4.2';
+  const APP_VERSION = '3.4.3';
 
   // ===== Testi per i visitatori in 5 lingue (ordine dei pulsanti come su fonoteca.ch) =====
   const LANGS = ['it', 'fr', 'de', 'rm', 'en'];
@@ -1134,7 +1134,19 @@
   init();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    window.addEventListener('load', () => {
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      // Quando una nuova versione prende il controllo, ricarica una volta sola la pagina
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloaded || currentId || !$('#admin').hidden) return;
+        reloaded = true;
+        location.reload();
+      });
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(reg => { try { reg.update(); } catch (_) {} })
+        .catch(() => {});
+    });
   }
 })();
 </script>
