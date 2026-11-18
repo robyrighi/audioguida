@@ -356,7 +356,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '3.4.1';
+  const APP_VERSION = '3.4.2';
 
   // ===== Testi per i visitatori in 5 lingue (ordine dei pulsanti come su fonoteca.ch) =====
   const LANGS = ['it', 'fr', 'de', 'rm', 'en'];
@@ -619,8 +619,7 @@
       '<span class="thumb">' + artHTML(t) + '<span class="playmark">' + ICON_PLAY + '</span></span>' +
       '<span class="meta"><span class="txt"><span class="t">' + esc(t.title) + '</span>' +
       (t.artist ? '<span class="a">' + esc(t.artist) + '</span>' : '') + '</span></span>' +
-      '<span class="d"><span>' + (t.duration ? fmt(t.duration) : '') + '</span>' +
-      (fileCodes(t.fileName) ? '<span class="arch">' + esc(tr('archive') + ' ' + fileCodes(t.fileName).archive) + '</span>' : '') + '</span>' +
+      '<span class="d"><span>' + (t.duration ? fmt(t.duration) : '') + '</span></span>' +
       '</button></li>'
     ).join('');
     $('#empty').hidden = tracks.length > 0;
