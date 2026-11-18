@@ -52,6 +52,9 @@ L'importazione li ordina così e toglie il numero dal titolo mostrato.
 - **+ Aggiungi file audio** → seleziona più file insieme.
 - Per ogni brano ci sono due campi, **Titolo** e **Artista**; puoi anche spostarlo su/giù o eliminarlo.
 - All'importazione titolo e artista vengono letti dai tag dell'MP3 (ID3); se mancano, il titolo viene dal nome del file.
+- **⟳ Sostituisci audio**: cambia solo il file audio di un brano; immagine, posizione, titolo e artista restano
+  (se titolo o artista sono vuoti, vengono presi dai tag del nuovo file).
+- Aggiornare un MP3 nella cartella VLC non cambia nulla nella app: la app ne conserva una copia, quindi usa ⟳.
 - Imposta titolo e sottotitolo della schermata, il passaggio automatico al brano successivo
   e il ritorno alla schermata iniziale dopo inattività.
 - La gestione si chiude da sola dopo 3 minuti senza tocchi.

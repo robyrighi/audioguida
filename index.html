@@ -296,9 +296,10 @@
         <input type="file" id="fileInput" class="vh" accept="audio/*,.mp3,.m4a" multiple>
         <span id="importStatus" class="muted"></span>
       </div>
-      <p class="muted">Tocca il riquadro a sinistra di ogni brano per scegliere o cambiare l'immagine.</p>
+      <p class="muted">Tocca il riquadro a sinistra di ogni brano per scegliere o cambiare l'immagine. Con ⟳ sostituisci solo il file audio: immagine, posizione, titolo e artista restano.</p>
       <div id="adminList"></div>
       <input type="file" id="imgInput" class="vh" accept="image/*">
+      <input type="file" id="replaceInput" class="vh" accept="audio/*,.mp3,.m4a">
     </section>
 
     <section>
@@ -351,7 +352,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '3.1.0';
+  const APP_VERSION = '3.2.0';
 
   // ===== Testi per i visitatori in 5 lingue (ordine dei pulsanti come su fonoteca.ch) =====
   const LANGS = ['it', 'fr', 'de', 'rm', 'en'];
@@ -846,6 +847,7 @@
         '<input type="text" data-field="artist" value="' + esc(t.artist || '') + '" maxlength="120" placeholder="Artista" aria-label="Artista">' +
         '</div>' +
         '<span class="ameta">' + (t.duration ? fmt(t.duration) : '–') + ' · ' + (t.size / 1048576).toFixed(1) + ' MB</span>' +
+        '<button class="ibtn" data-act="replace" aria-label="Sostituisci audio" title="Sostituisci audio">⟳</button>' +
         '<button class="ibtn" data-act="noimg"' + (u ? '' : ' disabled') + ' aria-label="Rimuovi immagine" title="Rimuovi immagine">⌧</button>' +
         '<button class="ibtn" data-act="up"' + (i === 0 ? ' disabled' : '') + ' aria-label="Sposta su">↑</button>' +
         '<button class="ibtn" data-act="down"' + (i === tracks.length - 1 ? ' disabled' : '') + ' aria-label="Sposta giù">↓</button>' +
@@ -868,6 +870,7 @@
   });
 
   let imgTarget = null;
+  let replaceTarget = null;
   $('#adminList').addEventListener('click', async e => {
     const b = e.target.closest('button[data-act]');
     if (!b) return;
@@ -877,6 +880,7 @@
     const t = tracks[i];
     const act = b.dataset.act;
     if (act === 'img') { imgTarget = id; $('#imgInput').click(); return; }
+    if (act === 'replace') { replaceTarget = id; $('#replaceInput').click(); return; }
     if (act === 'noimg') {
       await delImg(id); t.hasImg = false; await putMeta(t); setTrackImgUrl(id, null);
     } else if (act === 'up' || act === 'down') {
@@ -890,6 +894,37 @@
       await delData(id); await delImg(id); await delMeta(id);
       setTrackImgUrl(id, null);
       tracks.splice(i, 1);
+    }
+    renderAdminList();
+    renderInfo();
+  });
+
+  // Sostituisce solo l'audio di un brano: immagine, posizione, titolo e artista restano.
+  // Se titolo o artista sono vuoti, vengono presi dai tag del nuovo file.
+  $('#replaceInput').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    const id = replaceTarget; replaceTarget = null;
+    const t = tracks.find(x => x.id === id);
+    if (!f || !t) return;
+    const status = $('#importStatus');
+    status.textContent = 'Sostituzione audio di "' + t.title + '"…';
+    try {
+      if (currentId === id) stop();
+      const duration = await probeDuration(f);
+      const buf = await f.arrayBuffer();
+      await putData(id, buf);
+      const tag = readId3(buf);
+      if (!t.title) t.title = tag.title || cleanTitle(f.name);
+      if (!t.artist && tag.artist) t.artist = tag.artist;
+      t.fileName = f.name;
+      t.type = f.type || 'audio/mpeg';
+      t.size = f.size;
+      t.duration = duration || 0;
+      await putMeta(t);
+      status.textContent = 'Audio sostituito: "' + t.title + '" ← ' + f.name;
+    } catch (err) {
+      status.textContent = 'Errore nella sostituzione: ' + (err && err.message ? err.message : err);
     }
     renderAdminList();
     renderInfo();
