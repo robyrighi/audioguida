@@ -50,7 +50,8 @@ L'importazione li ordina così e toglie il numero dal titolo mostrato.
 - Tieni premuto **3 secondi l'angolo in alto a destra** dello schermo.
 - Codice iniziale: **1234** → cambialo subito nella sezione *Codice di accesso*.
 - **+ Aggiungi file audio** → seleziona più file insieme.
-- Per ogni brano puoi modificare il titolo, spostarlo su/giù o eliminarlo.
+- Per ogni brano ci sono due campi, **Titolo** e **Artista**; puoi anche spostarlo su/giù o eliminarlo.
+- All'importazione titolo e artista vengono letti dai tag dell'MP3 (ID3); se mancano, il titolo viene dal nome del file.
 - Imposta titolo e sottotitolo della schermata, il passaggio automatico al brano successivo
   e il ritorno alla schermata iniziale dopo inattività.
 - La gestione si chiude da sola dopo 3 minuti senza tocchi.
