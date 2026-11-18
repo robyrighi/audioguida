@@ -55,6 +55,9 @@ L'importazione li ordina così e toglie il numero dal titolo mostrato.
 - **⟳ Sostituisci audio**: cambia solo il file audio di un brano; immagine, posizione, titolo e artista restano
   (se titolo o artista sono vuoti, vengono presi dai tag del nuovo file).
 - Aggiornare un MP3 nella cartella VLC non cambia nulla nella app: la app ne conserva una copia, quindi usa ⟳.
+- **Nome dei file `NUMERO_TRACCIA.mp3`** (es. `12345_03.mp3`): la parte prima del primo `_` è il numero d'archivio,
+  quella dopo è la traccia. Nella griglia il numero d'archivio appare in basso a destra (a sinistra la durata);
+  nel player in alto: "N. d'archivio 12345 · Traccia 03". Senza `_` nel nome resta "Brano X di Y".
 - **⟳ Aggiorna tutti**: seleziona tutti i file della cartella VLC (Auswählen → Alle auswählen); ogni brano viene aggiornato
   con il file che ha lo stesso nome di quello importato (maiuscole/minuscole non contano). File senza corrispondenza: ignorati.
 - Imposta titolo e sottotitolo della schermata, il passaggio automatico al brano successivo

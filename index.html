@@ -78,7 +78,8 @@
   .tile .txt{flex:1;min-width:0}
   .tile .t{display:block;font-size:18px;font-weight:700;line-height:1.25;color:var(--text)}
   .tile .a{display:block;margin-top:3px;font-size:16px;line-height:1.25;color:var(--text)}
-  .tile .d{margin:0 14px 12px;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+  .tile .d{margin-top:auto;padding:0 14px 12px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+  .tile .d .arch{text-align:right}
   .tile.playing{border-color:var(--red)}
   body.is-playing .tile.playing .playmark{animation:pulse 1.4s ease-in-out infinite}
   @keyframes pulse{50%{transform:scale(1.12)}}
@@ -355,7 +356,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '3.3.0';
+  const APP_VERSION = '3.4.0';
 
   // ===== Testi per i visitatori in 5 lingue (ordine dei pulsanti come su fonoteca.ch) =====
   const LANGS = ['it', 'fr', 'de', 'rm', 'en'];
@@ -364,6 +365,7 @@
     it: {
       subtitle: 'Tocca un brano per ascoltarlo',
       trackOf: 'Brano {n} di {t}',
+      archive: "N. d'archivio", track: 'Traccia',
       empty: 'Nessun brano disponibile.',
       institution: 'Fonoteca nazionale svizzera',
       note: 'La Fonoteca nazionale svizzera è una sezione della <b>Biblioteca nazionale svizzera</b>',
@@ -373,6 +375,7 @@
     fr: {
       subtitle: 'Touchez une piste pour l’écouter',
       trackOf: 'Piste {n} sur {t}',
+      archive: "N° d'archive", track: 'Piste',
       empty: 'Aucune piste disponible.',
       institution: 'Phonothèque nationale suisse',
       note: 'La Phonothèque nationale suisse est une section de la <b>Bibliothèque nationale suisse</b>',
@@ -382,6 +385,7 @@
     de: {
       subtitle: 'Tippen Sie auf einen Titel, um ihn anzuhören',
       trackOf: 'Titel {n} von {t}',
+      archive: 'Archivnr.', track: 'Track',
       empty: 'Keine Titel verfügbar.',
       institution: 'Schweizerische Nationalphonothek',
       note: 'Die Schweizerische Nationalphonothek ist eine Abteilung der <b>Schweizerischen Nationalbibliothek</b>',
@@ -391,6 +395,7 @@
     rm: {
       subtitle: 'Tutgai in titel per al tadlar',
       trackOf: 'Titel {n} da {t}',
+      archive: "Nr. d'archiv", track: 'Titel',
       empty: 'Nagins titels disponibels.',
       institution: 'Fonoteca naziunala svizra',
       note: 'La Fonoteca naziunala svizra è ina secziun da la <b>Biblioteca naziunala svizra</b>',
@@ -400,6 +405,7 @@
     en: {
       subtitle: 'Tap a track to listen',
       trackOf: 'Track {n} of {t}',
+      archive: 'Archive no.', track: 'Track',
       empty: 'No tracks available.',
       institution: 'Swiss National Sound Archives',
       note: 'The Swiss National Sound Archives are a section of the <b>Swiss National Library</b>',
@@ -499,7 +505,15 @@
     return h ? h + ':' + pad2(m) + ':' + pad2(s) : m + ':' + pad2(s);
   }
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Nome file "123_05.mp3" -> numero d'archivio "123", traccia "05" (separatore: il primo "_")
+  function fileCodes(name) {
+    const stem = String(name || '').replace(/\.[^.]+$/, '').trim();
+    const i = stem.indexOf('_');
+    if (i <= 0 || i === stem.length - 1) return null;
+    return { archive: stem.slice(0, i).trim(), track: stem.slice(i + 1).trim() };
+  }
   function cleanTitle(name) {
+    if (fileCodes(name)) return name.replace(/\.[^.]+$/, '').trim();
     const t = name.replace(/\.[^.]+$/, '').replace(/^\d+\s*[-_.)]\s*/, '').replace(/_+/g, ' ').trim();
     return t || name;
   }
@@ -577,7 +591,8 @@
     document.documentElement.lang = l;
     renderLangs();
     renderTexts();
-    if (currentId) { const t = tracks.find(x => x.id === currentId); if (t) $('#pmNum').textContent = tr('trackOf', { n: tracks.indexOf(t) + 1, t: tracks.length }); }
+    if (db) renderGrid();
+    if (currentId) { const t = tracks.find(x => x.id === currentId); if (t) $('#pmNum').textContent = headLabel(t); }
   }
 
   // ---------- Rendering ----------
@@ -604,7 +619,8 @@
       '<span class="thumb">' + artHTML(t) + '<span class="playmark">' + ICON_PLAY + '</span></span>' +
       '<span class="meta"><span class="n">' + pad2(i + 1) + '</span><span class="txt"><span class="t">' + esc(t.title) + '</span>' +
       (t.artist ? '<span class="a">' + esc(t.artist) + '</span>' : '') + '</span></span>' +
-      '<span class="d">' + (t.duration ? fmt(t.duration) : '') + '</span>' +
+      '<span class="d"><span>' + (t.duration ? fmt(t.duration) : '') + '</span>' +
+      (fileCodes(t.fileName) ? '<span class="arch">' + esc(tr('archive') + ' ' + fileCodes(t.fileName).archive) + '</span>' : '') + '</span>' +
       '</button></li>'
     ).join('');
     $('#empty').hidden = tracks.length > 0;
@@ -618,10 +634,15 @@
   });
 
   // ---------- Player popup ----------
+  function headLabel(t) {
+    const c = fileCodes(t.fileName);
+    return c ? tr('archive') + ' ' + c.archive + ' · ' + tr('track') + ' ' + c.track
+             : tr('trackOf', { n: tracks.indexOf(t) + 1, t: tracks.length });
+  }
   function showPlayer(t) {
     const i = tracks.indexOf(t);
     $('#pmArt').innerHTML = artHTML(t);
-    $('#pmNum').textContent = tr('trackOf', { n: i + 1, t: tracks.length });
+    $('#pmNum').textContent = headLabel(t);
     $('#pmTitle').textContent = t.title;
     $('#pmArtist').textContent = t.artist || '';
     $('#pmArtist').hidden = !t.artist;
